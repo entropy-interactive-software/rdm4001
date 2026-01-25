@@ -98,14 +98,14 @@ Console::Console(Game* game) {
       copyrightTexture =
           this->game->getGfxEngine()->getDevice()->createTexture();
 
-      gfx::gui::OutFontTexture t = gfx::gui::FontRender::render(
+      /*gfx::gui::OutFontTexture t = gfx::gui::FontRender::render(
           this->game->getGfxEngine()->getGuiManager()->getFontCache()->get(
               CONSOLE_FONT, CONSOLE_SIZE),
           "(c) logiciel interactif entropie 2024-2026");
       copyrightWidth = t.w;
       copyrightHeight = t.h;
       copyrightTexture->upload2d(t.w, t.h, gfx::DtUnsignedByte,
-                                 gfx::BaseTexture::RGBA, t.data);
+      gfx::BaseTexture::RGBA, t.data);*/
     });
     game->getWorld()->stepped.listen([this] { tick(); });
 

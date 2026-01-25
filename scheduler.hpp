@@ -157,8 +157,6 @@ class Scheduler {
 
   size_t getId() { return id; }
 
-  void imguiDebug();
-
   void waitToWrapUp();
 
   void startAllJobs();

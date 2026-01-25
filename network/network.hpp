@@ -43,6 +43,8 @@ class NetworkManager {
   float nextDtPacket;
   float latency;
 
+  bool recvTick;
+
   std::string playerType;
   std::string password;
   std::string userPassword;

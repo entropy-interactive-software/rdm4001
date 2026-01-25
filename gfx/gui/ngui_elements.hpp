@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #include <functional>
+#include <memory>
 
 #include "gfx/base_types.hpp"
 #include "ngui.hpp"
@@ -8,7 +9,11 @@
 
 namespace rdm::gfx::gui {
 class TextLabel : public NGuiElement {
-  std::unique_ptr<BaseTexture> textTexture;
+  std::unique_ptr<BaseBuffer> vBuffer;
+  std::unique_ptr<BaseBuffer> iBuffer;
+  std::unique_ptr<BaseArrayPointers> ap;
+  int numTextElements;
+
   Font* font;
   unsigned int maxWidth;
   bool autowrap;
@@ -23,7 +28,9 @@ class TextLabel : public NGuiElement {
     dirty = true;
     font = NULL;
     maxWidth = INT32_MAX;
-    textTexture = manager->getEngine()->getDevice()->createTexture();
+    vBuffer = manager->getEngine()->getDevice()->createBuffer();
+    iBuffer = manager->getEngine()->getDevice()->createBuffer();
+    ap = manager->getEngine()->getDevice()->createArrayPointers();
     autowrap = false;
   };
 

@@ -1,11 +1,14 @@
 #include "sdl_window.hpp"
 
 #include <SDL3/SDL_messagebox.h>
+#include <SDL3/SDL_properties.h>
+#include <SDL3/SDL_render.h>
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_vulkan.h>
 
 #include <filesystem.hpp>
+#include <stdexcept>
 
 #include "gfx/base_context.hpp"
 #include "gfx/stb_image.h"
@@ -13,6 +16,9 @@
 #include "logging.hpp"
 #include "settings.hpp"
 #include "window.hpp"
+
+// TODO: Wayland windows wont get a wl_surface or anything so the EGL system
+// doesnt work at the moment
 
 namespace rdm {
 SDLWindow::SDLWindow(Game* game) : AbstractionWindow(game) {
@@ -60,12 +66,20 @@ SDLWindow::SDLWindow(Game* game) : AbstractionWindow(game) {
                ? SDL_WINDOW_FULLSCREEN
                : SDL_WINDOW_RESIZABLE;
   window = SDL_CreateWindow("RDM4001!!!", wsize.x, wsize.y, flags);
-  SDL_SetWindowMinimumSize(window, 800, 600);
 
   if (!window) {
     Log::printf(LOG_FATAL, "Unable to create Window (%s)", SDL_GetError());
     throw std::runtime_error("SDL window couldn't be created");
   }
+
+  SDL_SetWindowMinimumSize(window, 800, 600);
+
+  while (SDL_GetWindowFlags(window) & SDL_WINDOW_HIDDEN) {
+    eventLoop();
+  }
+
+  Log::printf(LOG_DEBUG, "Using SDL Window (driver: %s)",
+              SDL_GetCurrentVideoDriver());
 };
 
 SDLWindow::~SDLWindow() {}
@@ -299,6 +313,17 @@ glm::ivec2 SDLWindow::getWindowSize() {
   SDL_GetWindowSize(window, &i.x, &i.y);
   return i;
 }
+
+bool SDLWindow::supportsWindowRepositioning() {
+#if defined(SDL_PLATFORM_LINUX)
+  if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0) {
+    return true;
+  } else if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0) {
+    return false;
+  }
+#endif
+  return true;
+}
 };  // namespace rdm
 
 // little buggy fix because Xlib defines KeyPress for some reason and it
@@ -312,13 +337,19 @@ namespace rdm {
 void* SDLWindow::getGfxHwnd() {
 #if defined(SDL_PLATFORM_LINUX)
   if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0) {
-    Display* xdisplay = (Display*)SDL_GetPointerProperty(
-        SDL_GetWindowProperties(window), SDL_PROP_WINDOW_X11_DISPLAY_POINTER,
-        NULL);
     Window xwindow = (Window)SDL_GetNumberProperty(
         SDL_GetWindowProperties(window), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
     return (void*)xwindow;
   } else if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0) {
+    SDL_RenderPresent(SDL_GetRenderer(window));
+
+    return (void*)SDL_GetNumberProperty(SDL_GetWindowProperties(window),
+                                        SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER,
+                                        -1);
+  } else {
+    Log::printf(LOG_FATAL, "Unknown video driver %s",
+                SDL_GetCurrentVideoDriver());
+    throw std::runtime_error("Unknown video driver (see logs)");
   }
 #endif
   return NULL;

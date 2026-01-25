@@ -11,7 +11,6 @@
 #include <memory>
 #include <mutex>
 
-#include "LinearMath/btMatrix3x3.h"
 #include "signal.hpp"
 
 #define PHYSICS_FRAMERATE (1.0 / 60.0)

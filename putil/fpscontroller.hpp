@@ -1,4 +1,7 @@
 #pragma once
+#include <deque>
+
+#include "LinearMath/btVector3.h"
 #include "gfx/camera.hpp"
 #include "network/bitstream.hpp"
 #include "physics.hpp"
@@ -16,6 +19,8 @@ struct FpsControllerSettings {
 
   FpsControllerSettings();  // default settings, good for bsp maps
 };
+
+#define NR_FPS_ROLLBACK_TICKS 16
 
 class FpsController {
   PhysicsWorld* world;
@@ -44,6 +49,8 @@ class FpsController {
   std::mutex m;
 
   btVector3 front;
+
+  std::deque<btVector3> rollbackTicks;
 
   void physicsStep();
 

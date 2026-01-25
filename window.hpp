@@ -19,6 +19,7 @@ class AbstractionWindow {
   virtual void eventLoop() = 0;
   virtual void setTitle(std::string title) {};
   virtual void updateIcon(std::string str) {};
+  virtual bool supportsWindowRepositioning() { return false; }
 
   enum MessageBoxType { Error, Warning, Info };
 

@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "imgui/imgui.h"
-
 namespace rdm::gfx {
 enum DataType {
   DtUnsignedByte,
@@ -47,20 +45,22 @@ class BaseGfxEntity {
 class BaseTexture : public BaseGfxEntity {
  public:
   enum Type {
-    Texture1D,
     Texture2D,
     Texture2D_MultiSample,
+    Texture1D,
     Texture3D,
     Texture3D_MultiSample,
     CubeMap,
     Rect2D,
     Array1D,
     Array2D,
-    CubeMapArray
+    CubeMapArray,
+    Uninitialized
   };
 
   // sized formats
   enum InternalFormat {
+    R8,
     RGB8,
     RGBA8,
     RGBF32,
@@ -75,6 +75,7 @@ class BaseTexture : public BaseGfxEntity {
   };
 
   enum Format {
+    R,
     RGB,
     RGBA,
 
@@ -124,7 +125,6 @@ class BaseTexture : public BaseGfxEntity {
   Type getType() { return textureType; }
   InternalFormat getInternalFormat() { return textureFormat; }
 
-  virtual ImTextureID getImTextureId() { return 0; };
   virtual bool isMultisampled() { return false; }
 
   bool isReserve() { return reserve; };
@@ -315,6 +315,7 @@ class BaseArrayPointers : public BaseGfxEntity {
   virtual ~BaseArrayPointers() {};
 
   void addAttrib(Attrib attrib) { attribs.push_back(attrib); };
+  void deleteAttribs() { attribs.clear(); };
 
   virtual void upload() = 0;
 

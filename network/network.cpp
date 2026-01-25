@@ -14,6 +14,7 @@
 #include "logging.hpp"
 #include "network/bitstream.hpp"
 #include "network/entity.hpp"
+#include "network/network_defs.hpp"
 #include "scheduler.hpp"
 #include "settings.hpp"
 #include "world.hpp"
@@ -317,7 +318,6 @@ NetworkManager::~NetworkManager() {
   host = NULL;
 }
 
-static CVar sv_dtrate("sv_dtrate", "1.5", CVARF_SAVE | CVARF_GLOBAL);
 static ConsoleCommand security_clear_host_keys(
     "security_clear_host_keys", "security_clear_host_keys", "",
     [](Game* game, ConsoleArgReader reader) {
@@ -354,6 +354,7 @@ void NetworkManager::service() {
         try {
           Peer* remotePeer = (Peer*)event.peer->data;
           BitStream stream(event.packet->data, event.packet->dataLength);
+          stream.setMetadataOnTick(remotePeer->lastKnownTick);
           PacketId packetId = stream.read<PacketId>();
           try {
             switch (packetId) {
@@ -482,6 +483,7 @@ void NetworkManager::service() {
                   remotePeer->playerEntity->remotePeerId.set(
                       remotePeer->peerId);
                   remotePeer->playerEntity->displayName.set(username);
+                  remotePeer->lastKnownTick = ticks;
 
                   BitStream newPeerPacket;
                   newPeerPacket.write<PacketId>(NewPeerPacket);
@@ -653,9 +655,11 @@ void NetworkManager::service() {
 
                 break;
               case DistributedTimePacket:
-                if (backend)
-                  throw std::runtime_error("DistributedTimePacket on backend");
-                else {
+                if (backend) {
+                  size_t tick = stream.read<size_t>();
+                  remotePeer->lastKnownTick = std::max(
+                      std::min(ticks - NETWORK_MAX_ACCEPTED_TICK, tick), ticks);
+                } else {
                   float newTime = stream.read<float>();
                   float diff = newTime - distributedTime;
                   lastTick = std::chrono::steady_clock::now();
@@ -678,6 +682,11 @@ void NetworkManager::service() {
                       it->second.packetLoss = ploss;
                     }
                   }
+                  BitStream responsePacket;
+                  responsePacket.write<size_t>(ticks);
+                  enet_peer_send(
+                      localPeer.peer, NETWORK_STREAM_META,
+                      responsePacket.createPacket(ENET_PACKET_FLAG_RELIABLE));
                 }
                 break;
               case RconPacket:
@@ -846,12 +855,14 @@ void NetworkManager::service() {
     packetHistory.push_back(packetFrameHistory);
   }
 
-  for (auto& entity : entities) {
-    try {
-      entity.second->tick();
-    } catch (std::exception& e) {
-      Log::printf(LOG_ERROR, "Error ticking entity %s:%i: %s",
-                  entity.second->getTypeName(), entity.first, e.what());
+  if (backend) {
+    for (auto& entity : entities) {
+      try {
+        entity.second->tick();
+      } catch (std::exception& e) {
+        Log::printf(LOG_ERROR, "Error ticking entity %s:%i: %s",
+                    entity.second->getTypeName(), entity.first, e.what());
+      }
     }
   }
 
@@ -1027,7 +1038,7 @@ void NetworkManager::service() {
     }
 
     if (distributedTime > nextDtPacket) {
-      nextDtPacket = distributedTime + sv_dtrate.getFloat();
+      nextDtPacket = distributedTime + (1.0 / net_rate.getFloat());
 
       BitStream timeStream;
       timeStream.write<PacketId>(DistributedTimePacket);
@@ -1040,7 +1051,7 @@ void NetworkManager::service() {
         timeStream.write<int>(peer.second.peer->packetLoss);
       }
       enet_host_broadcast(host, NETWORK_STREAM_META,
-                          timeStream.createPacket(0));
+                          timeStream.createPacket(ENET_PACKET_FLAG_RELIABLE));
     }
   } else {
     if (localPeer.playerEntity) {
@@ -1133,7 +1144,7 @@ void NetworkManager::service() {
     }
   }
 
-  ticks++;
+  if (backend) ticks++;
 }
 
 static CVar sv_maxpeers("sv_maxpeers", "32",

@@ -39,8 +39,6 @@ class GLTexture : public BaseTexture {
   virtual void bind();
 
   virtual void setFiltering(Filtering min, Filtering max);
-
-  virtual ImTextureID getImTextureId() { return getId(); }
 };
 
 class GLProgram : public BaseProgram {

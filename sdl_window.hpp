@@ -17,6 +17,7 @@ class SDLWindow : public AbstractionWindow {
   virtual void eventLoop();
   virtual void setTitle(std::string title);
   virtual void updateIcon(std::string str);
+  virtual bool supportsWindowRepositioning();
 
   virtual void showMessageBox(MessageBoxType type, std::string title,
                               std::string message);

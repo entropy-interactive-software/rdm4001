@@ -9,18 +9,17 @@
 namespace rdm::gfx::gui {
 void TextLabel::updateText() {
   if (!dirty) return;
-  dirty = false;
 
   Font* toUse = font;
   if (!toUse) {
     toUse = getGuiManager()->getFontCache()->get(NGUI_UI_FONT);
   }
+  if (!toUse) return;
+  dirty = false;
 
-  OutFontTexture t = FontRender::renderWrapped(
-      toUse, text.size() ? text.c_str() : " ",
-      autowrap ? std::min(maxWidth, (unsigned int)getMaxSize().x) : 0);
-  textTexture->upload2d(t.w, t.h, DtUnsignedByte, BaseTexture::RGBA, t.data, 0);
-  setMinSize(glm::vec2(t.w, t.h));
+  toUse->buildBuffer(text.c_str(), vBuffer.get(), iBuffer.get(),
+                     &numTextElements, ap.get());
+  setMinSize(toUse->getTextSize(text.c_str()));
   setSize(getSize());
   color = glm::vec3(1.0);
 }
@@ -31,7 +30,34 @@ void TextLabel::elementRender(NGuiRenderer* renderer) {
   renderer->setColor(color);
   glm::vec2 p = getPosition();
   p.y -= getDisplaySize().y;
-  renderer->image(textTexture.get(), p, getMinSize());
+
+  Font* toUse = font;
+  if (!toUse) {
+    toUse = getGuiManager()->getFontCache()->get(NGUI_UI_FONT);
+  }
+
+  if (!numTextElements) return;
+  if (!toUse) return;
+
+  RenderCommand command(BaseDevice::Triangles, iBuffer.get(), numTextElements,
+                        ap.get(), NULL, NULL);
+
+  glm::vec2 target = glm::vec2(p.x, p.y);
+  glm::vec2 window = renderer->getEngine()->getTargetResolution();
+  glm::ivec2 textSize = toUse->getTextSize(text.c_str());
+  if (target.x < 0) {
+    target.x = (window.x + target.x) - textSize.x;
+  }
+  if (target.y < 0) {
+    target.y = (window.y + target.y) - textSize.y;
+  }
+  target = glm::round(target);
+
+  command.setOffset(target);
+  command.setTexture(0, toUse->getTexture());
+  command.setScale(glm::vec2(1));
+
+  renderer->getList().add(command);
 }
 
 void TextInput::elementRender(NGuiRenderer* renderer) {

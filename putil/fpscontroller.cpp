@@ -372,6 +372,10 @@ void FpsController::deserialize(network::BitStream& stream, bool backend) {
       this->cameraPitch = cameraPitch;
       this->front = BulletHelpers::toVector3(front);
     }
+
+    if (backend) {
+      rollbackTicks.push_back(origin);
+    }
   } else {
     btTransform& ourTransform = rigidBody->getWorldTransform();
     if (flags & PFLAG_ORIGIN && flags & PFLAG_VELOCITY) {

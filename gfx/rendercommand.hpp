@@ -55,11 +55,15 @@ class RenderCommand {
 struct RenderListSettings {
   BaseDevice::CullState cull;
   BaseDevice::DepthStencilState state;
+  BaseDevice::BlendState blend;
 
-  RenderListSettings(BaseDevice::CullState cull = BaseDevice::FrontCCW,
-                     BaseDevice::DepthStencilState state = BaseDevice::LEqual) {
+  RenderListSettings(
+      BaseDevice::CullState cull = BaseDevice::FrontCCW,
+      BaseDevice::DepthStencilState state = BaseDevice::LEqual,
+      BaseDevice::BlendState blend = BaseDevice::OneMinusDstAlpha) {
     this->cull = cull;
     this->state = state;
+    this->blend = blend;
   }
 };
 

@@ -501,17 +501,6 @@ void Model::updateAnimator(gfx::Engine* engine, Animator* anim) {
   calcAnimatorTransforms(scene->mRootNode, anim, glm::mat4(1));
 }
 
-void Model::imguiDebug() {
-  for (auto [name, animation] : animations) {
-    if (ImGui::TreeNode(name.c_str())) {
-      ImGui::Text("Duration: %f", animation.duration);
-      ImGui::Text("Ticks/Second: %f", animation.tps);
-
-      ImGui::TreePop();
-    }
-  }
-}
-
 static CVar r_anim("r_anim", "1");
 
 void Model::calcAnimatorTransforms(aiNode* node, Animator* anim,

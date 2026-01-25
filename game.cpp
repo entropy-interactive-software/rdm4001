@@ -51,9 +51,6 @@
 #include <signal.h>
 #endif
 
-#include "gfx/imgui/backends/imgui_impl_sdl3.h"
-#include "gfx/imgui/imgui.h"
-
 namespace rdm {
 static CVar cl_copyright("cl_copyright", "1", CVARF_SAVE | CVARF_GLOBAL);
 static CVar cl_loglevel("cl_loglevel", "2", CVARF_SAVE | CVARF_GLOBAL);
@@ -170,8 +167,8 @@ void Game::startClient() {
   glm::ivec2 wpos = glm::ivec2(SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
   if (cl_savedwindowpos.getVec2() != glm::vec2(-1)) {
     wpos = cl_savedwindowpos.getVec2();
+    Log::printf(LOG_DEBUG, "saved pos: %ix%i", wpos.x, wpos.y);
   }
-  Log::printf(LOG_DEBUG, "saved pos: %ix%i", wpos.x, wpos.y);
 
 #ifdef RDM4001_FEATURE_SDL
   window.reset(new SDLWindow(this));
@@ -182,11 +179,6 @@ void Game::startClient() {
   soundManager.reset(new SoundManager(world.get()));
 
   gfxEngine.reset(new gfx::Engine(world.get(), window.get()));
-  // ImGui::SetCurrentContext(ImGui::CreateContext());
-  // ImGui_ImplSDL3_InitForOpenGL(
-  //     window, ((gfx::gl::GLContext*)gfxEngine->getContext())->getContext());
-  // ImGui::GetIO().DisplaySize = ImVec2(wsize.x, wsize.y);
-
   if (worldSettings.network) {
     world->getNetworkManager()->setGfxEngine(gfxEngine.get());
     world->getNetworkManager()->setGame(this);

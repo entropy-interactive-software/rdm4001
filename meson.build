@@ -20,6 +20,7 @@ curl = dependency('libcurl')
 mpv = dependency('mpv', required: get_option('mpv'))
 icu = dependency('icu-i18n')
 lua = dependency('luajit')
+freetype = dependency('freetype2')
 
 common_proj = subproject('common')
 common_dep = common_proj.get_variable('libcommon_dep')
@@ -37,10 +38,10 @@ options = ['-DDISABLE_EASY_PROFILER']
 #options = []
 
 
-inc_dirs = ['.', 'gfx/imgui', 'subprojects/common']
+inc_dirs = ['.', 'subprojects/common', bullet.get_variable('/usr/include/bullet', pkgconfig: 'includedir')]
 
 readline = dependency('', required: false)
-game_deps = [libsndfile, enet, common_dep, obz_dep, openal, assimp, bullet, curl, libtomcrypt, icu, lua]
+game_deps = [libsndfile, enet, common_dep, obz_dep, openal, assimp, bullet, curl, libtomcrypt, icu, lua, freetype]
 
 # HACK because bullet cant find LinearMath without this
 if build_machine.system() == 'haiku'
@@ -76,7 +77,6 @@ if sdl.found()
   xtra_src += [
     'sdl_window.cpp',
     'sdl_window.hpp',
-    'gfx/imgui/backends/imgui_impl_sdl3.cpp',
   ]
   game_deps += [
     sdl
@@ -216,18 +216,6 @@ gamelib = library('rdm4001', [
   'gfx/gui/ngui_elements.hpp',
   'gfx/gui/ngui_window.cpp',
   'gfx/gui/ngui_window.hpp',
-
-  'gfx/imgui/backends/imgui_impl_opengl3.cpp',
-  'gfx/imgui/imconfig.h',
-  'gfx/imgui/imgui.cpp',
-  'gfx/imgui/imgui.h',
-  'gfx/imgui/imgui_draw.cpp',
-  'gfx/imgui/imgui_internal.h',
-  'gfx/imgui/imgui_tables.cpp',
-  'gfx/imgui/imgui_widgets.cpp',
-  'gfx/imgui/imstb_rectpack.h',
-  'gfx/imgui/imstb_textedit.h',
-  'gfx/imgui/imstb_truetype.h',
 
   'gfx/apis.cpp',
   'gfx/apis.hpp',

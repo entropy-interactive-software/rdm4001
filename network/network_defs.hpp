@@ -4,6 +4,8 @@
 
 #include "entity.hpp"
 
+#define NETWORK_MAX_ACCEPTED_TICK 16
+
 #define NETWORK_STREAM_META 0
 #define NETWORK_STREAM_ENTITY 1
 #define NETWORK_STREAM_EVENT 2

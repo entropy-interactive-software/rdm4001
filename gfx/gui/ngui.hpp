@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "font.hpp"
@@ -32,6 +33,11 @@ class NGuiSingleton {
   std::map<std::string, GUICtor> guiCtor;
 };
 
+struct NGuiVertex {
+  glm::vec2 position;
+  glm::vec2 uv;
+};
+
 class NGui {
   NGuiManager* gui;
   gfx::Engine* engine;
@@ -52,15 +58,23 @@ class NGuiManager : public reflection::Object {
   RDM_OBJECT;
   RDM_OBJECT_DEF(NGuiManager, reflection::Object);
 
-  std::map<std::string, NGui*> guis;
-  gfx::Engine* engine;
+ public:
   struct CacheTextMember {
     std::string text;
     Font* font;
-    std::unique_ptr<gfx::BaseTexture> texture;
+
+    std::unique_ptr<gfx::BaseBuffer> vBuffer;
+    std::unique_ptr<gfx::BaseBuffer> iBuffer;
+    int iNumElements;
+    std::unique_ptr<gfx::BaseArrayPointers> ap;
 
     int height, width, maxWidth;
   };
+
+ private:
+  std::map<std::string, NGui*> guis;
+  gfx::Engine* engine;
+
   std::map<int, CacheTextMember> cacheMember;
 
   std::unique_ptr<BaseBuffer> squareArrayBuffer;
@@ -78,6 +92,8 @@ class NGuiManager : public reflection::Object {
   NGuiManager(gfx::Engine* engine);
   void render();
 
+  CacheTextMember* getText(int tn, Font* font, int maxWidth, const char* text);
+
   template <typename T>
   T* getGui() {
     for (auto& [name, gui] : guis) {
@@ -94,13 +110,6 @@ class NGuiManager : public reflection::Object {
 
   void setCurrentText(char* t, size_t l);
   bool isCurrentText(char* t) { return t == textInput; }
-
-  struct TexOutData {
-    gfx::BaseTexture* texture;
-    int height;
-    int width;
-  };
-  TexOutData getTextTexture(int tn, Font* font, int maxWidth, const char* text);
 
   gfx::Engine* getEngine() { return engine; }
 };

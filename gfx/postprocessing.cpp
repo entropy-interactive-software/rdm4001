@@ -122,24 +122,24 @@ void PostProcessingManager::updateResolution(Viewport* vp) {
       noDF = true;
     }
 
-    if (!noDF) {
-      resultFramebufferTextures[0]->reserve2d(fbSizeF.x, fbSizeF.y,
+    Log::printf(LOG_DEBUG, "NoDF = %s", noDF ? "true" : "false");
+
+    resultFramebufferTextures[0]->reserve2d(fbSizeF.x, fbSizeF.y,
+                                            BaseTexture::RGBAF32);
+    resultFramebuffer->setTarget(resultFramebufferTextures[0].get(),
+                                 BaseFrameBuffer::Color0);
+
+    if (bloomEnabled) {
+      resultFramebufferTextures[1]->reserve2d(fbSizeF.x, fbSizeF.y,
                                               BaseTexture::RGBAF32);
-      resultFramebuffer->setTarget(resultFramebufferTextures[0].get(),
-                                   BaseFrameBuffer::Color0);
+      resultFramebuffer->setTarget(resultFramebufferTextures[1].get(),
+                                   BaseFrameBuffer::Color1);
+    }
 
-      if (bloomEnabled) {
-        resultFramebufferTextures[1]->reserve2d(fbSizeF.x, fbSizeF.y,
-                                                BaseTexture::RGBAF32);
-        resultFramebuffer->setTarget(resultFramebufferTextures[1].get(),
-                                     BaseFrameBuffer::Color1);
-      }
-
-      if (resultFramebuffer->getStatus() != BaseFrameBuffer::Complete) {
-        Log::printf(LOG_ERROR, "BaseFrameBuffer::getStatus() = %i",
-                    resultFramebuffer->getStatus());
-        throw std::runtime_error("Failed creating Viewport framebuffer");
-      }
+    if (resultFramebuffer->getStatus() != BaseFrameBuffer::Complete) {
+      Log::printf(LOG_ERROR, "BaseFrameBuffer::getStatus() = %i",
+                  resultFramebuffer->getStatus());
+      throw std::runtime_error("Failed creating Viewport framebuffer");
     }
   } catch (std::exception& e) {
     Log::printf(LOG_ERROR, "Creating post fb: %s", e.what());

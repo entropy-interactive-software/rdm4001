@@ -83,6 +83,9 @@ void HttpManager::handleWebRequest(CURL* handle, std::string url, Request rq,
   } else {
     rsp.response = rd.data;
     curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &rsp.statusCode);
+#ifndef NDEBUG
+    Log::printf(LOG_DEBUG, "HTTP %s %d", url.c_str(), rsp.statusCode);
+#endif
   }
 
   struct curl_header *prev, *h;

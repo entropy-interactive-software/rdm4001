@@ -20,7 +20,6 @@
 #endif
 
 #include "game.hpp"
-#include "gfx/imgui/imgui.h"
 
 static size_t schedulerId = 0;
 
@@ -71,18 +70,6 @@ NGUI_INSTANTIATOR(SchedulerGraphGui);
 
 Scheduler::Scheduler() { this->id = schedulerId++; }
 Scheduler::~Scheduler() { waitToWrapUp(); }
-
-void Scheduler::imguiDebug() {
-  for (auto& job : jobs) {
-    JobStatistics stats = job->getStats();
-    ImGui::Text("Job %s", stats.name);
-    ImGui::Text("S: %i, T: %0.2f", stats.schedulerId, stats.time);
-    ImGui::Text("Total DT: %0.8f", stats.totalDeltaTime);
-    ImGui::Text("DT: %0.8f", stats.deltaTime);
-    ImGui::Text("Expected DT: %0.8f", job->getFrameRate());
-    ImGui::Separator();
-  }
-}
 
 void Scheduler::waitToWrapUp() {
   for (auto& job : jobs) {

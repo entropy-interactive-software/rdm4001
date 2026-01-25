@@ -117,6 +117,10 @@ GLContext::GLContext(AbstractionWindow* hwnd) : BaseContext(hwnd) {
   windowSurface = eglCreateWindowSurface(eglDisplay, eglConfig,
                                          (NativeWindowType)hwnd->getGfxHwnd(),
                                          s_surfaceAttribs);
+  Log::printf(LOG_DEBUG, "EGL Hwnd = %p", hwnd->getGfxHwnd());
+  if (!windowSurface) {
+    throw std::runtime_error("windowSurface == NULL");
+  }
 
   EGLint attributes[] = {
       EGL_CONTEXT_MAJOR_VERSION,

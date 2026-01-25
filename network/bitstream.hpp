@@ -22,6 +22,8 @@ class BitStream {
   size_t size;
   size_t c;
 
+  size_t metadataOnTick;
+
   bool isSpaceFor(size_t s);
   void makeSpaceFor(size_t s);
 
@@ -52,6 +54,9 @@ class BitStream {
 
   BitStream(void* data, size_t size);
   BitStream(BitStream& stream);
+
+  void setMetadataOnTick(size_t tick) { metadataOnTick = tick; }
+  size_t getMetadataOnTick() { return metadataOnTick; }
 
   template <typename T>
   void write(T t) {

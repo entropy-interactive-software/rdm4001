@@ -1,6 +1,7 @@
 #include <unicode/locid.h>
 #include <unicode/unistr.h>
 #include <unicode/ustream.h>
+#include <unistd.h>
 
 #include <filesystem>
 

@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+#include <glm/common.hpp>
 #include <list>
 #include <world.hpp>
 
@@ -40,7 +41,7 @@ NGuiSingleton* NGuiSingleton::singleton() {
 }
 
 NGuiManager::NGuiManager(gfx::Engine* engine) {
-  fontCache.reset(new FontCache());
+  fontCache.reset(new FontCache(engine));
 
   this->engine = engine;
   for (auto [name, ctor] : NGuiSingleton::singleton()->guiCtor) {
@@ -50,7 +51,23 @@ NGuiManager::NGuiManager(gfx::Engine* engine) {
   gfx::MaterialCache* cache = engine->getMaterialCache();
   image = cache->getOrLoad("GuiImage").value();
 
-  float squareVtx[] = {0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0};
+  NGuiVertex squareVtx[] = {{
+                                {0.0, 0.0},
+                                {0.0, 0.0},
+                            },
+                            {
+                                {1.0, 0.0},
+                                {1.0, 0.0},
+                            },
+                            {
+                                {0.0, 1.0},
+                                {0.0, 1.0},
+                            },
+                            {
+                                {1.0, 1.0},
+                                {1.0, 1.0},
+                            }};
+
   squareArrayBuffer = engine->getDevice()->createBuffer();
   squareArrayBuffer->upload(gfx::BaseBuffer::Array, gfx::BaseBuffer::StaticDraw,
                             sizeof(squareVtx), squareVtx);
@@ -63,7 +80,11 @@ NGuiManager::NGuiManager(gfx::Engine* engine) {
 
   squareArrayPointers = engine->getDevice()->createArrayPointers();
   squareArrayPointers->addAttrib(BaseArrayPointers::Attrib(
-      DtFloat, 0, 2, sizeof(float) * 2, 0, squareArrayBuffer.get()));
+      DtFloat, 0, 2, sizeof(NGuiVertex), (void*)offsetof(NGuiVertex, position),
+      squareArrayBuffer.get()));
+  squareArrayPointers->addAttrib(BaseArrayPointers::Attrib(
+      DtFloat, 0, 2, sizeof(NGuiVertex), (void*)offsetof(NGuiVertex, uv),
+      squareArrayBuffer.get()));
   squareArrayPointers->upload();
 
   textInput = NULL;
@@ -104,54 +125,6 @@ void NGuiManager::render() {
   engine->getRenderJob()->getProfiler().end();
 }
 
-NGuiManager::TexOutData NGuiManager::getTextTexture(int tn, Font* font,
-                                                    int maxWidth,
-                                                    const char* text) {
-  CacheTextMember* ctm = NULL;
-  TexOutData d;
-  if (cacheMember.find(tn) == cacheMember.end()) {
-    cacheMember[tn] = CacheTextMember();
-    ctm = &cacheMember[tn];
-    ctm->texture = engine->getDevice()->createTexture();
-    ctm->font = font;
-    ctm->text = "";
-  } else {
-    ctm = &cacheMember[tn];
-  }
-
-  if (ctm->text != text || ctm->font != font || ctm->maxWidth != maxWidth) {
-    ctm->text = text;
-    ctm->font = font;
-    ctm->maxWidth = maxWidth;
-
-    if (ctm->maxWidth == 0) {
-      OutFontTexture out = FontRender::render(font, text);
-      if (out.data == NULL) throw std::runtime_error("out.data == NULL");
-      ctm->height = out.h;
-      ctm->width = out.w;
-
-      ctm->texture->upload2d(out.w, out.h, DtUnsignedByte, BaseTexture::RGBA,
-                             out.data);
-    } else {
-      int acMaxWidth = maxWidth;
-      if (ctm->maxWidth == -1) acMaxWidth = 0;
-      OutFontTexture out = FontRender::renderWrapped(font, text, acMaxWidth);
-      if (out.data == NULL) throw std::runtime_error("out.data == NULL");
-      ctm->height = out.h;
-      ctm->width = out.w;
-
-      ctm->texture->upload2d(out.w, out.h, DtUnsignedByte, BaseTexture::RGBA,
-                             out.data);
-    }
-  }
-
-  d.texture = ctm->texture.get();
-  d.height = ctm->height;
-  d.width = ctm->width;
-
-  return d;
-}
-
 static RenderListSettings settings(BaseDevice::None, BaseDevice::Always);
 
 NGuiRenderer::NGuiRenderer(NGuiManager* manager, gfx::Engine* engine,
@@ -169,6 +142,32 @@ NGuiRenderer::NGuiRenderer(NGuiManager* manager, gfx::Engine* engine,
   this->texNum = texNum;
 }
 
+NGuiManager::CacheTextMember* NGuiManager::getText(int tn, Font* font,
+                                                   int maxWidth,
+                                                   const char* text) {
+  CacheTextMember* ctm = NULL;
+  if (cacheMember.find(tn) == cacheMember.end()) {
+    cacheMember[tn] = CacheTextMember();
+    ctm = &cacheMember[tn];
+    ctm->ap = engine->getDevice()->createArrayPointers();
+    ctm->vBuffer = engine->getDevice()->createBuffer();
+    ctm->iBuffer = engine->getDevice()->createBuffer();
+    ctm->iNumElements = 0;
+  } else {
+    ctm = &cacheMember[tn];
+  }
+  if (ctm->text != text || ctm->font != font || ctm->maxWidth != maxWidth) {
+    ctm->text = text;
+    ctm->font = font;
+    ctm->maxWidth = maxWidth;
+
+    if (font)
+      font->buildBuffer(ctm->text.c_str(), ctm->vBuffer.get(),
+                        ctm->iBuffer.get(), &ctm->iNumElements, ctm->ap.get());
+  }
+  return ctm;
+}
+
 std::pair<int, int> NGuiRenderer::text(glm::ivec2 position, Font* font,
                                        int maxWidth, const char* text, ...) {
   va_list ap;
@@ -178,36 +177,39 @@ std::pair<int, int> NGuiRenderer::text(glm::ivec2 position, Font* font,
 
   if (strlen(buf) == 0) strcpy(buf, " ");
 
-  std::pair<int, int> out;
-  NGuiManager::TexOutData d =
-      manager->getTextTexture(texNum, font, maxWidth, buf);
-  out.first = d.width;
-  out.second = d.height;
+  NGuiManager::CacheTextMember* ctm =
+      manager->getText(texNum, font, maxWidth, buf);
   texNum++;
 
-  glm::vec2 target = glm::vec2(position.x, position.y);
-  glm::vec2 window = engine->getTargetResolution();
-  if (target.x < 0) {
-    target.x = (window.x + target.x) - d.width;
+  std::pair<int, int> r = {0, 0};
+  if (ctm->iNumElements != 0) {
+    RenderCommand command(BaseDevice::Triangles, ctm->iBuffer.get(),
+                          ctm->iNumElements, ctm->ap.get(), NULL, NULL);
+
+    glm::vec2 target = glm::vec2(position.x, position.y);
+    glm::vec2 window = engine->getTargetResolution();
+    glm::ivec2 textSize = font->getTextSize(buf);
+    if (target.x < 0) {
+      target.x = (window.x + target.x) - textSize.x;
+    }
+    if (target.y < 0) {
+      target.y = (window.y + target.y) - textSize.y;
+    }
+    target = glm::round(target);
+
+    command.setOffset(target);
+    if (font) command.setTexture(0, font->getTexture());
+
+    lastCommand = list.add(command);
+
+    submittedCommands++;
+
+    r.first = textSize.x;
+    r.second = textSize.y;
   }
-  if (target.y < 0) {
-    target.y = (window.y + target.y) - d.height;
-  }
-
-  target = glm::round(target);
-
-  RenderCommand command(BaseDevice::Triangles, manager->getSElementBuf(), 6,
-                        NULL, NULL, NULL);
-  command.setOffset(target);
-  command.setScale(glm::vec2(d.width, d.height));
-  command.setColor(color);
-  command.setTexture(0, d.texture);
-  lastCommand = list.add(command);
-
-  submittedCommands++;
 
   va_end(ap);
-  return out;
+  return r;
 }
 
 void NGuiRenderer::image(gfx::BaseTexture* image, glm::vec2 position,

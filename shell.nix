@@ -1,10 +1,17 @@
-let
-	nixpkgs = fetchTarball "https://github.com/NixOS/nixpkgs/tarball/nixos-25.05";
-	pkgs = import nixpkgs { config = {}; overlay = []; };
-in
+#let
+#	nixpkgs = fetchTarball "https://github.com/NixOS/nixpkgs/tarball/nixos-25.05";
+#	pkgs = import nixpkgs { config = {}; overlay = []; };
+#in
+with import <nixpkgs> {};
 
-pkgs.mkShell {
-	packages = with pkgs; [
+clangStdenv.mkDerivation {
+	name = "dev-shell";
+	src = null;
+  nativeBuildInputs = [
+    llvmPackages_21.clang-tools
+  ];
+	buildInputs = [
+    llvmPackages.openmp
 		sdl3
 		bullet
 		libsndfile
@@ -28,5 +35,8 @@ pkgs.mkShell {
 		glm
 		readline
 		xorg.libX11.dev
+		qrencode
+    freetype
+    gdb
 	];
 }

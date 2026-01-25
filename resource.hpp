@@ -71,8 +71,6 @@ class BaseResource : public reflection::Object {
 
   ResourceManager* getResourceManager() { return resourceManager; };
 
-  virtual void imguiDebug() {};
-
   std::mutex m;
 };
 
@@ -126,7 +124,6 @@ class ResourceManager : public reflection::Object {
 
   void tick();
   void tickGfx(gfx::Engine* engine);
-  void imgui(gfx::Engine* engine);
 
   void deleteGfxResources();
 
@@ -350,7 +347,6 @@ class Model : public BaseGfxResource {
   Animation* getAnimation(std::string name);
   Animation* getAnimation() { return preferedAnimation; }
 
-  virtual void imguiDebug();
   BoundingBox getBoundingBox() { return boundingBox; }
 
  private:

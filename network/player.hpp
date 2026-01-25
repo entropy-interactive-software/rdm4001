@@ -44,6 +44,7 @@ struct Peer {
 
   int roundTripTime;
   int packetLoss;
+  size_t lastKnownTick;
 
   CustomEventList queuedEvents;
   std::vector<EntityId> pendingNewIds;

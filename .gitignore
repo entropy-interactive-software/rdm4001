@@ -13,3 +13,5 @@ compile_commands.json
 .exclude
 _*.bin
 subprojects/.wraplock
+.direnv
+

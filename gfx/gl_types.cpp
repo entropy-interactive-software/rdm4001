@@ -33,6 +33,7 @@ GLenum fromDataType(DataType t) {
 
 GLTexture::GLTexture() {
   glGenTextures(1, &texture);
+  textureType = Uninitialized;
   isRenderBuffer = false;
   multisampled = false;
 }
@@ -50,6 +51,8 @@ GLenum GLTexture::texType(BaseTexture::Type type) {
     case CubeMap:
       return GL_TEXTURE_CUBE_MAP;
       break;
+    case Uninitialized:
+      throw std::runtime_error("Texture is uninitialized");
     default:
       throw std::runtime_error("Invalid type");
   }
@@ -57,6 +60,8 @@ GLenum GLTexture::texType(BaseTexture::Type type) {
 
 GLenum GLTexture::texFormat(Format format) {
   switch (format) {
+    case R:
+      return GL_RED;
     case RGB:
       return GL_RGB;
     case RGBA:
@@ -68,6 +73,8 @@ GLenum GLTexture::texFormat(Format format) {
 
 GLenum GLTexture::texInternalFormat(InternalFormat format) {
   switch (format) {
+    case R8:
+      return GL_R8;
     case RGB8:
       return GL_RGB8;
     case RGBA8:
@@ -161,6 +168,9 @@ void GLTexture::upload2d(int width, int height, DataType type,
   textureType = Texture2D;
 
   switch (format) {
+    case R:
+      textureFormat = R8;
+      break;
     case RGB:
       textureFormat = RGB8;
       break;
